@@ -12,3 +12,9 @@ A lightweight verification utility for system diagnostics, health checks, and pr
 ## License
 
 This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Documentation
+
+- [Functional Requirements Document](docs/FRD.md)
+- [Technical Design Document](docs/TDD.md)
+

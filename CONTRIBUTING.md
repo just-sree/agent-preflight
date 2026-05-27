@@ -23,7 +23,7 @@ Thank you for your interest in contributing to agent-preflight!
 
 4. Run tests:
    ```bash
-   pytest
+   python -m pytest
    ```
 
 ## Pull Request Process

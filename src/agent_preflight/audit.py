@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import uuid
@@ -15,7 +15,7 @@ class AuditWriter:
         audit_id = str(uuid.uuid4())
         record = AuditRecord(
             audit_id=audit_id,
-            timestamp_utc=datetime.now(UTC).isoformat(),
+            timestamp_utc=datetime.now(timezone.utc).isoformat(),
             action_name=payload.action_name,
             allowed=result_allowed,
             reason=reason,

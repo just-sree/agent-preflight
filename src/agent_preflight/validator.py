@@ -1,4 +1,5 @@
 from typing import Any
+import sys
 
 from pydantic import ValidationError
 
@@ -8,6 +9,8 @@ from agent_preflight.policy import BasePolicy
 
 
 class ActionValidator:
+    """Validate one structured action payload without executing it."""
+
     def __init__(
         self,
         policy: BasePolicy | None = None,
@@ -17,6 +20,7 @@ class ActionValidator:
         self.audit_writer = audit_writer
 
     def validate(self, payload: ActionPayload | dict[str, Any]) -> ValidationResult:
+        """Return an allow/block result for an action payload."""
         try:
             action_payload = (
                 payload
@@ -50,6 +54,13 @@ class ActionValidator:
         )
 
         if self.audit_writer is not None:
-            result.audit_id = self.audit_writer.write(action_payload, allowed, reason)
+            try:
+                result.audit_id = self.audit_writer.write(
+                    action_payload,
+                    allowed,
+                    reason,
+                )
+            except Exception as exc:
+                print(f"Failed to write audit record: {exc}", file=sys.stderr)
 
         return result

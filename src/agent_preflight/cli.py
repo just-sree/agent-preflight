@@ -3,6 +3,7 @@ import json
 import sys
 
 from agent_preflight.audit import AuditWriter
+from agent_preflight.models import ValidationResult
 from agent_preflight.policy import BlockActionNamesPolicy
 from agent_preflight.validator import ActionValidator
 
@@ -40,7 +41,19 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with open(args.json_file, encoding="utf-8") as payload_file:
             payload = json.load(payload_file)
+    except FileNotFoundError as exc:
+        print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as exc:
+        result = ValidationResult(
+            allowed=False,
+            action_name="<invalid>",
+            reason=f"Invalid JSON payload: {exc.msg}",
+        )
+        print(json.dumps(result.model_dump(exclude_none=True), indent=2))
+        return 2
 
+    try:
         policy = (
             BlockActionNamesPolicy(set(args.block_action))
             if args.block_action

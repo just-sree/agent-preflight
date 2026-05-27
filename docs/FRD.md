@@ -38,16 +38,16 @@
 | :--- | :--- | :--- |
 | **Validator** | `ActionPayload` (JSON/Dict) | `ValidationResult` (Object) |
 | **Policy Hook** | `ActionPayload` | `PolicyDecision` (Boolean + Reason) |
-| **Audit Logger** | `ValidationResult` | Local File Append (JSONL/SQLite) |
+| **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL) |
 
 ## 8. CLI Requirements
 The CLI will serve as an experimental interface. It must support a `validate` command that accepts a file path to a JSON payload, processes it through the validation primitives, and outputs the result to standard out.
 
 ## 9. Configuration Requirements
-Configuration should be managed via a local JSON or YAML file, dictating simple policy toggles (e.g., `enable_audit_log`, `strict_schema_mode`). No remote configuration fetching is supported.
+For v0.1, configuration is provided directly through Python objects or CLI flags such as `--block-action` and `--audit-log`. Local JSON or YAML configuration files are deferred. No remote configuration fetching is supported.
 
 ## 10. Error Handling Requirements
-* Malformed JSON inputs must gracefully fail, returning a `ValidationResult` with `allowed: false` and a descriptive parser error.
+* Malformed JSON inputs must gracefully fail, returning a `ValidationResult`-shaped response with `allowed: false` and a descriptive parser error.
 * Schema mismatches must not raise unhandled exceptions but rather return structured rejection reasons.
 
 ## 11. Observability Requirements
@@ -66,5 +66,5 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M3:** Local policy hooks and audit logging integration.
 
 ## 15. Open Questions
-* Should the audit logger default to JSONL for simplicity or SQLite for querying?
+* When should the audit logger add SQLite support for querying?
 * What is the optimal base format for defining custom policy hooks in a public OSS context?

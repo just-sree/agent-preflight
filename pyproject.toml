@@ -5,16 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agent-preflight"
 version = "0.1.0"
-description = "A lightweight verification utility for system diagnostics, health checks, and pre-run validations."
+description = "A tiny local package for validating structured agent actions before execution."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-dependencies = []
+dependencies = [
+    "pydantic>=2.0,<3.0",
+]
 
 [project.optional-dependencies]
 test = [

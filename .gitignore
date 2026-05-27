@@ -50,6 +50,9 @@ coverage.xml
 .pytest_cache/
 .nosexy
 
+# Local agent-preflight audit logs
+.agent-preflight/
+
 # Translations
 *.mo
 *.pot

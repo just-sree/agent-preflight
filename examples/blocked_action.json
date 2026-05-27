@@ -1,0 +1,10 @@
+{
+  "action_name": "delete_rows",
+  "arguments": {
+    "table": "users",
+    "where": "1=1"
+  },
+  "metadata": {
+    "source": "example"
+  }
+}

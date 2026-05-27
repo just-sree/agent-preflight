@@ -1,11 +1,13 @@
 import argparse
 import json
+from pathlib import Path
 import sys
 
 from agent_preflight.audit import AuditWriter, SQLiteAuditWriter
 from agent_preflight.config import AUDIT_BACKENDS, PreflightConfig, load_preflight_config
 from agent_preflight.models import ValidationResult
 from agent_preflight.policy import BlockActionNamesPolicy
+from agent_preflight.reports import ValidationReport, build_validation_report
 from agent_preflight.schemas import load_action_schema
 from agent_preflight.validator import ActionValidator
 
@@ -41,6 +43,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         help="Path to a local YAML preflight config file.",
     )
+    validate_parser.add_argument(
+        "--output",
+        choices=["json", "text"],
+        help="Output format for stdout.",
+    )
+    validate_parser.add_argument(
+        "--report-file",
+        help="Path to write a JSON validation report.",
+    )
 
     return parser
 
@@ -74,6 +85,26 @@ def _build_audit_writer(
         return SQLiteAuditWriter(audit_path)
 
     raise ValueError(f"Unknown audit backend: {audit_backend}")
+
+
+def _format_text_report(report: ValidationReport) -> str:
+    return "\n".join(
+        [
+            f"allowed: {str(report.allowed).lower()}",
+            f"action_name: {report.action_name}",
+            f"reason: {report.reason}",
+            f"audit_id: {report.audit_id if report.audit_id is not None else 'none'}",
+        ]
+    )
+
+
+def _write_report_file(report: ValidationReport, path: str) -> None:
+    report_path = Path(path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report.model_dump(), indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -133,8 +164,23 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": str(exc)}), file=sys.stderr)
         return 1
 
-    result_data = result.model_dump(exclude={"policy_decision"}, exclude_none=True)
-    print(json.dumps(result_data, indent=2))
+    report = build_validation_report(result)
+
+    try:
+        if args.report_file:
+            _write_report_file(report, args.report_file)
+    except Exception as exc:
+        print(json.dumps({"error": str(exc)}), file=sys.stderr)
+        return 1
+
+    if args.output == "json":
+        print(json.dumps(report.model_dump(), indent=2))
+    elif args.output == "text":
+        print(_format_text_report(report))
+    else:
+        result_data = result.model_dump(exclude={"policy_decision"}, exclude_none=True)
+        print(json.dumps(result_data, indent=2))
+
     return 0 if result.allowed else 2
 
 if __name__ == "__main__":

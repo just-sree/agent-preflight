@@ -84,6 +84,26 @@ agent-preflight validate examples/allowed_action.json \
 
 Audit logs are local files. They are intended for development and inspection, not as a production compliance system.
 
+## Validation reports
+
+`agent-preflight` can emit machine-readable validation reports.
+
+```bash
+agent-preflight validate examples/allowed_action.json \
+  --config examples/preflight.yml \
+  --output json
+```
+
+Write a report file:
+
+```bash
+agent-preflight validate examples/blocked_action.json \
+  --config examples/preflight.yml \
+  --report-file reports/blocked-result.json
+```
+
+Reports are intended for local automation, CI checks, and integration testing. They do not include raw action arguments by default.
+
 ## Current Scope
 
 This early version supports:
@@ -95,6 +115,7 @@ This early version supports:
 * simple action-name blocking
 * JSONL audit records
 * SQLite audit records
+* validation report output
 * local CLI usage
 
 ## Not Included Yet

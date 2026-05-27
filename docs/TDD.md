@@ -34,6 +34,7 @@ src/agent_preflight/
   cli.py
   config.py
   models.py
+  reports.py
   schemas.py
   validator.py
   policy.py
@@ -60,6 +61,7 @@ docs/
 * `ActionSchema`: Represents optional per-action argument requirements and simple expected types.
 * `PreflightConfig`: Represents optional local YAML config for blocked actions, schema mapping, and audit settings.
 * `ValidationResult`: Contains the boolean `allowed` flag, `action_name`, `reason`, optional policy decision, and optional audit identifier.
+* `ValidationReport`: Represents the stable public report schema for CLI and automation output.
 * `PolicyDecision`: The intermediate output from a policy hook evaluating a specific rule.
 * `AuditRecord`: The serialized record combining the action name, outcome, reason, timestamp, audit ID, and metadata for local storage.
 
@@ -69,6 +71,7 @@ docs/
 * **Config Loader:** Deserializes local YAML config into a `PreflightConfig`.
 * **Schema Loader:** Deserializes local schema JSON into an `ActionSchema`.
 * **Validator Core:** Orchestrates Pydantic payload validation, optional action schema validation, optional policy evaluation, and optional audit writing.
+* **Report Builder:** Converts a `ValidationResult` into a stable `ValidationReport`.
 * **Policy Hook:** Applies one configured static policy check, such as blocked action names. Multi-policy orchestration is deferred.
 * **Audit Writer:** Appends validation records to a local JSONL file.
 * **SQLite Audit Writer:** Writes validation records to a local SQLite database.
@@ -83,7 +86,8 @@ docs/
 6. The optional policy hook evaluates the action intent.
 7. A `ValidationResult` is generated.
 8. If configured, the event is written to local storage via the `AuditWriter`.
-9. The result is returned to the caller.
+9. If requested, a `ValidationReport` is generated for stdout and/or file output.
+10. The result is returned to the caller.
 
 ## 9. Storage Design
 
@@ -104,8 +108,10 @@ Built with the standard library `argparse` module.
 Command pattern:
 
 ```bash
-agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--block-action <name>] [--audit-backend <jsonl|sqlite>] [--audit-log <path>]
+agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--block-action <name>] [--audit-backend <jsonl|sqlite>] [--audit-log <path>] [--output <json|text>] [--report-file <path>]
 ```
+
+`ValidationReport` output is a stable public integration surface for local automation, CI checks, and future framework adapters. Reports do not include raw payload arguments by default.
 
 Exit codes:
 

@@ -320,3 +320,164 @@ def test_cli_unknown_audit_backend_fails_clearly(capsys):
 
     assert exit_code == 1
     assert "Unknown audit backend" in captured.err
+
+
+def test_cli_output_json_prints_validation_report(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--output",
+            "json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert report["allowed"] is True
+    assert report["action_name"] == "lookup_user"
+    assert report["output_version"] == "0.5"
+    assert report["metadata"] == {}
+
+
+def test_cli_output_text_prints_human_readable_fields(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/blocked_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--output",
+            "text",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "allowed: false" in captured.out
+    assert "action_name: delete_rows" in captured.out
+    assert "reason: Action is blocked by policy" in captured.out
+    assert "audit_id:" in captured.out
+
+
+def test_cli_report_file_writes_report_json(tmp_path, capsys):
+    report_path = tmp_path / "blocked-result.json"
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/blocked_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--report-file",
+            str(report_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    stdout_result = json.loads(captured.out)
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 2
+    assert stdout_result["allowed"] is False
+    assert report["allowed"] is False
+    assert report["action_name"] == "delete_rows"
+    assert report["policy_name"] == "block_action_names"
+    assert report["output_version"] == "0.5"
+
+
+def test_cli_report_file_creates_parent_directory(tmp_path, capsys):
+    report_path = tmp_path / "reports" / "result.json"
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--report-file",
+            str(report_path),
+        ]
+    )
+
+    capsys.readouterr()
+
+    assert exit_code == 0
+    assert report_path.exists()
+
+
+def test_cli_report_output_does_not_include_raw_arguments(tmp_path, capsys):
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "action_name": "lookup_user",
+                "arguments": {
+                    "user_id": "secret-user-id",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_path = tmp_path / "result.json"
+
+    exit_code = main(
+        [
+            "validate",
+            str(payload_path),
+            "--output",
+            "json",
+            "--report-file",
+            str(report_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    stdout_report = json.loads(captured.out)
+    file_text = report_path.read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert "secret-user-id" not in captured.out
+    assert "secret-user-id" not in file_text
+    assert "arguments" not in stdout_report
+
+
+def test_cli_output_json_blocked_action_still_exits_2(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/blocked_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--output",
+            "json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert report["allowed"] is False
+
+
+def test_cli_output_json_allowed_action_still_exits_0(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--output",
+            "json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert report["allowed"] is True

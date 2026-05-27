@@ -36,6 +36,9 @@
 * **FR-AP-009:** The audit logger must preserve local metadata in JSON-serializable form.
 * **FR-AP-010:** The CLI must optionally load local YAML config for blocked actions, schema mapping, and audit settings.
 * **FR-AP-011:** The system must support optional local JSONL and SQLite audit backends.
+* **FR-AP-012:** The CLI must support machine-readable validation reports.
+* **FR-AP-013:** The CLI must optionally write validation reports to a local JSON file.
+* **FR-AP-014:** Validation reports must avoid raw payload arguments by default.
 
 ## 7. Inputs and Outputs
 | Component | Input | Output |
@@ -45,11 +48,14 @@
 | **Config Loader** | YAML file | `PreflightConfig` (Object) |
 | **Policy Hook** | `ActionPayload` | `PolicyDecision` (Boolean + Reason) |
 | **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL/SQLite) |
+| **Report Builder** | `ValidationResult` | `ValidationReport` (Object/JSON) |
 
 ## 8. CLI Requirements
 The CLI will serve as an experimental interface. It must support a `validate` command that accepts a file path to a JSON payload, processes it through the validation primitives, and outputs the result to standard out.
 
 The CLI may optionally accept a local action schema file for required argument and simple type validation. It may also accept a local YAML config file for simple blocked action, schema mapping, and audit settings.
+
+The CLI may emit validation reports to standard output and may write a report JSON file for automation and CI usage.
 
 ## 9. Configuration Requirements
 Configuration is provided through Python objects, CLI flags, or a local YAML file. CLI flags take precedence over config values. No remote configuration fetching is supported.
@@ -66,6 +72,8 @@ Audit metadata is shallow-copied and converted to JSON-serializable values befor
 
 Audit records may be written to JSONL or SQLite local files.
 
+Validation reports are a separate output surface from audit records and should not include raw payload arguments by default.
+
 ## 12. Security and Privacy Requirements
 * **Local-First:** All validation occurs locally. No payloads are sent to external telemetry servers.
 * **No Secrets:** The system assumes payloads do not contain sensitive credentials, and logs them exactly as provided. Users are responsible for masking data before logging.
@@ -80,6 +88,7 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M4:** Schema-bound action argument validation.
 * **M5:** Local YAML config support.
 * **M6:** Local SQLite audit backend.
+* **M7:** Machine-readable validation report output.
 
 ## 15. Open Questions
 * What query helpers should be exposed for SQLite audit records?

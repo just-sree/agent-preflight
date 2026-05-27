@@ -5,6 +5,7 @@ import sys
 from agent_preflight.audit import AuditWriter
 from agent_preflight.models import ValidationResult
 from agent_preflight.policy import BlockActionNamesPolicy
+from agent_preflight.schemas import load_action_schema
 from agent_preflight.validator import ActionValidator
 
 
@@ -26,6 +27,10 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument(
         "--audit-log",
         help="Path to a JSONL audit log.",
+    )
+    validate_parser.add_argument(
+        "--schema",
+        help="Path to an action schema JSON file.",
     )
 
     return parser
@@ -60,7 +65,12 @@ def main(argv: list[str] | None = None) -> int:
             else None
         )
         audit_writer = AuditWriter(args.audit_log) if args.audit_log else None
-        validator = ActionValidator(policy=policy, audit_writer=audit_writer)
+        action_schema = load_action_schema(args.schema) if args.schema else None
+        validator = ActionValidator(
+            policy=policy,
+            audit_writer=audit_writer,
+            action_schema=action_schema,
+        )
         result = validator.validate(payload)
     except Exception as exc:
         print(json.dumps({"error": str(exc)}), file=sys.stderr)

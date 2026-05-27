@@ -33,6 +33,7 @@ src/agent_preflight/
   __init__.py
   cli.py
   models.py
+  schemas.py
   validator.py
   policy.py
   audit.py
@@ -53,6 +54,7 @@ docs/
 ## 6. Core Data Models
 
 * `ActionPayload`: Represents the incoming unverified tool or action request.
+* `ActionSchema`: Represents optional per-action argument requirements and simple expected types.
 * `ValidationResult`: Contains the boolean `allowed` flag, `action_name`, `reason`, optional policy decision, and optional audit identifier.
 * `PolicyDecision`: The intermediate output from a policy hook evaluating a specific rule.
 * `AuditRecord`: The serialized record combining the action name, outcome, reason, timestamp, audit ID, and metadata for local storage.
@@ -60,7 +62,8 @@ docs/
 ## 7. Main Components
 
 * **Parser:** Deserializes incoming JSON data into an `ActionPayload`.
-* **Validator Core:** Orchestrates Pydantic schema validation, optional policy evaluation, and optional audit writing.
+* **Schema Loader:** Deserializes local schema JSON into an `ActionSchema`.
+* **Validator Core:** Orchestrates Pydantic payload validation, optional action schema validation, optional policy evaluation, and optional audit writing.
 * **Policy Hook:** Applies one configured static policy check, such as blocked action names. Multi-policy orchestration is deferred.
 * **Audit Writer:** Appends validation records to a local JSONL file.
 
@@ -69,14 +72,17 @@ docs/
 1. API/CLI receives raw data.
 2. Parser attempts to structure the data; malformed inputs become structured rejections.
 3. Validator validates the payload against the `ActionPayload` schema.
-4. The optional policy hook evaluates the action intent.
-5. A `ValidationResult` is generated.
-6. If configured, the event is written to local storage via the `AuditWriter`.
-7. The result is returned to the caller.
+4. If configured, the action schema validates the action name, required arguments, and simple argument types.
+5. The optional policy hook evaluates the action intent.
+6. A `ValidationResult` is generated.
+7. If configured, the event is written to local storage via the `AuditWriter`.
+8. The result is returned to the caller.
 
 ## 9. Storage Design
 
 Storage is restricted to optional local audit logs. The v0.1 implementation supports append-only JSONL, configurable by the user through code or the `--audit-log` CLI flag.
+
+Audit metadata is shallow-copied. Metadata values that cannot be serialized as JSON are replaced with their string representation before being written.
 
 ## 10. Configuration Design
 
@@ -89,7 +95,7 @@ Built with the standard library `argparse` module.
 Command pattern:
 
 ```bash
-agent-preflight validate <path_to_json> [--block-action <name>] [--audit-log <path>]
+agent-preflight validate <path_to_json> [--schema <path>] [--block-action <name>] [--audit-log <path>]
 ```
 
 Exit codes:
@@ -106,6 +112,7 @@ Exit codes:
 ## 13. Failure Modes
 
 * **Invalid Schema:** Validator returns `allowed: false`.
+* **Schema Mismatch:** Validator returns `allowed: false` with a stable reason such as a missing required argument or invalid argument type.
 * **Malformed JSON:** CLI returns a `ValidationResult`-shaped rejection.
 * **Audit Write Failure:** The system logs an error to `stderr` but still returns the validation result to avoid blocking the critical path.
 

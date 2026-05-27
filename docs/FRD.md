@@ -32,16 +32,21 @@
 * **FR-AP-005:** The system must write optional local audit records of the validation event.
 * **FR-AP-006:** The CLI must validate a local JSON file to enable quick testing and demonstrations.
 * **FR-AP-007:** The package must not require network access for its default operation.
+* **FR-AP-008:** The system must optionally validate required action arguments against simple declared types.
+* **FR-AP-009:** The audit logger must preserve local metadata in JSON-serializable form.
 
 ## 7. Inputs and Outputs
 | Component | Input | Output |
 | :--- | :--- | :--- |
 | **Validator** | `ActionPayload` (JSON/Dict) | `ValidationResult` (Object) |
+| **Action Schema** | Schema JSON/Dict | Required argument and type expectations |
 | **Policy Hook** | `ActionPayload` | `PolicyDecision` (Boolean + Reason) |
 | **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL) |
 
 ## 8. CLI Requirements
 The CLI will serve as an experimental interface. It must support a `validate` command that accepts a file path to a JSON payload, processes it through the validation primitives, and outputs the result to standard out.
+
+The CLI may optionally accept a local action schema file for required argument and simple type validation.
 
 ## 9. Configuration Requirements
 For v0.1, configuration is provided directly through Python objects or CLI flags such as `--block-action` and `--audit-log`. Local JSON or YAML configuration files are deferred. No remote configuration fetching is supported.
@@ -52,6 +57,8 @@ For v0.1, configuration is provided directly through Python objects or CLI flags
 
 ## 11. Observability Requirements
 Observability is handled entirely locally via the audit logging mechanism. Each run should optionally emit a structured log containing the timestamp, action type, and outcome.
+
+Audit metadata is shallow-copied and converted to JSON-serializable values before writing.
 
 ## 12. Security and Privacy Requirements
 * **Local-First:** All validation occurs locally. No payloads are sent to external telemetry servers.
@@ -64,6 +71,7 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M1:** Initial scaffold and CLI interface.
 * **M2:** Core Pydantic schema validation.
 * **M3:** Local policy hooks and audit logging integration.
+* **M4:** Schema-bound action argument validation.
 
 ## 15. Open Questions
 * When should the audit logger add SQLite support for querying?

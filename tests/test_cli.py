@@ -54,3 +54,38 @@ def test_cli_malformed_json_returns_structured_rejection(tmp_path, capsys):
     assert result["allowed"] is False
     assert result["action_name"] == "<invalid>"
     assert result["reason"].startswith("Invalid JSON payload")
+
+
+def test_cli_schema_allows_valid_action(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--schema",
+            "examples/action_schema.json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["allowed"] is True
+
+
+def test_cli_schema_blocks_invalid_action(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/invalid_missing_argument.json",
+            "--schema",
+            "examples/action_schema.json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert result["allowed"] is False
+    assert result["reason"] == "Missing required argument: user_id"

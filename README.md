@@ -12,7 +12,31 @@ pip install -e .
 agent-preflight validate examples/allowed_action.json
 agent-preflight validate examples/blocked_action.json --block-action delete_rows
 agent-preflight validate examples/allowed_action.json --audit-log .agent-preflight/audit.jsonl
+agent-preflight validate examples/allowed_action.json --schema examples/action_schema.json
 ```
+
+## Schema-bound validation
+
+`agent-preflight` can validate action arguments against a small JSON schema.
+
+```bash
+agent-preflight validate examples/allowed_action.json --schema examples/action_schema.json
+agent-preflight validate examples/invalid_missing_argument.json --schema examples/action_schema.json
+agent-preflight validate examples/invalid_wrong_type.json --schema examples/action_schema.json
+```
+
+Example schema:
+
+```json
+{
+  "action_name": "lookup_user",
+  "required_arguments": {
+    "user_id": "str"
+  }
+}
+```
+
+This is intentionally small and local-first. It is not a full policy engine or production security layer.
 
 ## Current Scope
 
@@ -20,6 +44,7 @@ This early version supports:
 
 * structured action payloads
 * required-field validation
+* schema-bound argument validation
 * simple action-name blocking
 * JSONL audit records
 * local CLI usage
@@ -28,6 +53,8 @@ This early version supports:
 
 * framework integrations
 * advanced policy evaluation
+* risk scoring
+* SQL validation
 * model calls
 * remote services
 * production security guarantees

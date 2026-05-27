@@ -19,10 +19,20 @@ class AuditWriter:
             action_name=payload.action_name,
             allowed=result_allowed,
             reason=reason,
-            metadata=payload.metadata,
+            metadata=sanitize_metadata(payload.metadata),
         )
 
         with self.path.open("a", encoding="utf-8") as audit_file:
             audit_file.write(json.dumps(record.model_dump()) + "\n")
 
         return audit_id
+
+
+def sanitize_metadata(metadata: dict) -> dict:
+    sanitized = metadata.copy()
+    for key, value in sanitized.items():
+        try:
+            json.dumps(value)
+        except (TypeError, ValueError):
+            sanitized[key] = str(value)
+    return sanitized

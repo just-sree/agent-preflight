@@ -1,0 +1,9 @@
+{
+  "action_name": "lookup_user",
+  "arguments": {
+    "user_id": 123
+  },
+  "metadata": {
+    "source": "example"
+  }
+}

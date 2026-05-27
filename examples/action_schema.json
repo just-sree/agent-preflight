@@ -1,0 +1,9 @@
+{
+  "action_name": "lookup_user",
+  "required_arguments": {
+    "user_id": "str"
+  },
+  "optional_arguments": {
+    "include_history": "bool"
+  }
+}

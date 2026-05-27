@@ -1,4 +1,5 @@
 import json
+import sqlite3
 
 from agent_preflight.cli import main
 
@@ -214,3 +215,108 @@ def test_cli_block_action_combines_with_config_blocked_actions(capsys):
     assert exit_code == 2
     assert result["allowed"] is False
     assert result["reason"] == "Action is blocked by policy"
+
+
+def test_cli_writes_sqlite_audit_record_with_backend_flag(tmp_path, capsys):
+    audit_path = tmp_path / "audit.db"
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--audit-backend",
+            "sqlite",
+            "--audit-log",
+            str(audit_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["audit_id"]
+
+    with sqlite3.connect(audit_path) as connection:
+        row_count = connection.execute(
+            "SELECT COUNT(*) FROM audit_records"
+        ).fetchone()[0]
+
+    assert row_count == 1
+
+
+def test_cli_config_can_enable_sqlite_audit_backend(tmp_path, capsys):
+    audit_path = tmp_path / "audit.db"
+    config_path = tmp_path / "preflight_sqlite.yml"
+    config_path.write_text(
+        f"""
+schemas:
+  lookup_user: examples/action_schema.json
+audit:
+  enabled: true
+  backend: sqlite
+  path: {audit_path.as_posix()}
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            str(config_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["audit_id"]
+    assert audit_path.exists()
+
+
+def test_cli_audit_backend_overrides_config_backend(tmp_path, capsys):
+    audit_path = tmp_path / "audit.jsonl"
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight_sqlite.yml",
+            "--audit-backend",
+            "jsonl",
+            "--audit-log",
+            str(audit_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["audit_id"]
+    assert audit_path.exists()
+    assert json.loads(audit_path.read_text(encoding="utf-8").splitlines()[0])[
+        "audit_id"
+    ] == result["audit_id"]
+
+
+def test_cli_unknown_audit_backend_fails_clearly(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--audit-backend",
+            "unknown",
+            "--audit-log",
+            "audit.out",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Unknown audit backend" in captured.err

@@ -1,13 +1,24 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 import yaml
+
+
+AUDIT_BACKENDS = {"jsonl", "sqlite"}
 
 
 class AuditConfig(BaseModel):
     enabled: bool = False
+    backend: str = "jsonl"
     path: str | None = None
+
+    @field_validator("backend")
+    @classmethod
+    def backend_must_be_supported(cls, value: str) -> str:
+        if value not in AUDIT_BACKENDS:
+            raise ValueError(f"Unknown audit backend: {value}")
+        return value
 
 
 class PreflightConfig(BaseModel):

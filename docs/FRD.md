@@ -35,6 +35,7 @@
 * **FR-AP-008:** The system must optionally validate required action arguments against simple declared types.
 * **FR-AP-009:** The audit logger must preserve local metadata in JSON-serializable form.
 * **FR-AP-010:** The CLI must optionally load local YAML config for blocked actions, schema mapping, and audit settings.
+* **FR-AP-011:** The system must support optional local JSONL and SQLite audit backends.
 
 ## 7. Inputs and Outputs
 | Component | Input | Output |
@@ -43,7 +44,7 @@
 | **Action Schema** | Schema JSON/Dict | Required argument and type expectations |
 | **Config Loader** | YAML file | `PreflightConfig` (Object) |
 | **Policy Hook** | `ActionPayload` | `PolicyDecision` (Boolean + Reason) |
-| **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL) |
+| **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL/SQLite) |
 
 ## 8. CLI Requirements
 The CLI will serve as an experimental interface. It must support a `validate` command that accepts a file path to a JSON payload, processes it through the validation primitives, and outputs the result to standard out.
@@ -63,6 +64,8 @@ Observability is handled entirely locally via the audit logging mechanism. Each 
 
 Audit metadata is shallow-copied and converted to JSON-serializable values before writing.
 
+Audit records may be written to JSONL or SQLite local files.
+
 ## 12. Security and Privacy Requirements
 * **Local-First:** All validation occurs locally. No payloads are sent to external telemetry servers.
 * **No Secrets:** The system assumes payloads do not contain sensitive credentials, and logs them exactly as provided. Users are responsible for masking data before logging.
@@ -76,7 +79,8 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M3:** Local policy hooks and audit logging integration.
 * **M4:** Schema-bound action argument validation.
 * **M5:** Local YAML config support.
+* **M6:** Local SQLite audit backend.
 
 ## 15. Open Questions
-* When should the audit logger add SQLite support for querying?
+* What query helpers should be exposed for SQLite audit records?
 * What is the optimal base format for defining custom policy hooks in a public OSS context?

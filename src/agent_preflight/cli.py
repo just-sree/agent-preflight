@@ -2,8 +2,8 @@ import argparse
 import json
 import sys
 
-from agent_preflight.audit import AuditWriter
-from agent_preflight.config import PreflightConfig, load_preflight_config
+from agent_preflight.audit import AuditWriter, SQLiteAuditWriter
+from agent_preflight.config import AUDIT_BACKENDS, PreflightConfig, load_preflight_config
 from agent_preflight.models import ValidationResult
 from agent_preflight.policy import BlockActionNamesPolicy
 from agent_preflight.schemas import load_action_schema
@@ -28,6 +28,10 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser.add_argument(
         "--audit-log",
         help="Path to a JSONL audit log.",
+    )
+    validate_parser.add_argument(
+        "--audit-backend",
+        help="Audit backend to use.",
     )
     validate_parser.add_argument(
         "--schema",
@@ -55,6 +59,21 @@ def _select_schema_path(
 
     # TODO: Add config-relative path resolution after the v0.3 CLI contract settles.
     return config.schemas.get(action_name)
+
+
+def _build_audit_writer(
+    audit_path: str | None,
+    audit_backend: str,
+) -> AuditWriter | SQLiteAuditWriter | None:
+    if not audit_path:
+        return None
+
+    if audit_backend == "jsonl":
+        return AuditWriter(audit_path)
+    if audit_backend == "sqlite":
+        return SQLiteAuditWriter(audit_path)
+
+    raise ValueError(f"Unknown audit backend: {audit_backend}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -94,7 +113,14 @@ def main(argv: list[str] | None = None) -> int:
             if config.audit.enabled
             else None
         )
-        audit_writer = AuditWriter(audit_log_path) if audit_log_path else None
+        audit_backend = (
+            args.audit_backend
+            if args.audit_backend
+            else config.audit.backend
+            if config.audit.enabled
+            else "jsonl"
+        )
+        audit_writer = _build_audit_writer(audit_log_path, audit_backend)
         schema_path = _select_schema_path(payload, args.schema, config)
         action_schema = load_action_schema(schema_path) if schema_path else None
         validator = ActionValidator(

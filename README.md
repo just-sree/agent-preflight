@@ -63,6 +63,27 @@ audit:
 
 CLI flags override config values.
 
+## Audit backends
+
+`agent-preflight` supports local audit records.
+
+JSONL:
+
+```bash
+agent-preflight validate examples/allowed_action.json \
+  --audit-log .agent-preflight/audit.jsonl
+```
+
+SQLite:
+
+```bash
+agent-preflight validate examples/allowed_action.json \
+  --audit-backend sqlite \
+  --audit-log .agent-preflight/audit.db
+```
+
+Audit logs are local files. They are intended for development and inspection, not as a production compliance system.
+
 ## Current Scope
 
 This early version supports:
@@ -73,6 +94,7 @@ This early version supports:
 * YAML config files
 * simple action-name blocking
 * JSONL audit records
+* SQLite audit records
 * local CLI usage
 
 ## Not Included Yet

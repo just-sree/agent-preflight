@@ -1,0 +1,11 @@
+blocked_actions:
+  - delete_rows
+  - send_email
+
+schemas:
+  lookup_user: examples/action_schema.json
+
+audit:
+  enabled: true
+  backend: sqlite
+  path: .agent-preflight/audit.db

@@ -71,6 +71,7 @@ docs/
 * **Validator Core:** Orchestrates Pydantic payload validation, optional action schema validation, optional policy evaluation, and optional audit writing.
 * **Policy Hook:** Applies one configured static policy check, such as blocked action names. Multi-policy orchestration is deferred.
 * **Audit Writer:** Appends validation records to a local JSONL file.
+* **SQLite Audit Writer:** Writes validation records to a local SQLite database.
 
 ## 8. Control Flow
 
@@ -86,13 +87,15 @@ docs/
 
 ## 9. Storage Design
 
-Storage is restricted to optional local audit logs. The implementation supports append-only JSONL, configurable by the user through code, config, or the `--audit-log` CLI flag.
+Storage is restricted to optional local audit logs. The implementation supports append-only JSONL and SQLite, configurable by the user through code, config, or CLI flags.
 
 Audit metadata is shallow-copied. Metadata values that cannot be serialized as JSON are replaced with their string representation before being written.
 
+SQLite storage uses a single `audit_records` table with one row per validation event. It stores metadata as a JSON string and does not use SQLAlchemy.
+
 ## 10. Configuration Design
 
-Configuration is intentionally small. `PreflightConfig` can be loaded from local YAML and supports blocked actions, schema path mappings by action name, and audit settings. Schema paths inside config are resolved relative to the current working directory.
+Configuration is intentionally small. `PreflightConfig` can be loaded from local YAML and supports blocked actions, schema path mappings by action name, and audit settings. Audit backend values are limited to `jsonl` and `sqlite`. Schema paths inside config are resolved relative to the current working directory.
 
 ## 11. CLI Design
 
@@ -101,7 +104,7 @@ Built with the standard library `argparse` module.
 Command pattern:
 
 ```bash
-agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--block-action <name>] [--audit-log <path>]
+agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--block-action <name>] [--audit-backend <jsonl|sqlite>] [--audit-log <path>]
 ```
 
 Exit codes:
@@ -121,6 +124,7 @@ Exit codes:
 * **Schema Mismatch:** Validator returns `allowed: false` with a stable reason such as a missing required argument or invalid argument type.
 * **Malformed JSON:** CLI returns a `ValidationResult`-shaped rejection.
 * **Invalid Config:** CLI exits with code `1` and writes an error to `stderr`.
+* **Unknown Audit Backend:** CLI exits with code `1` and writes an error to `stderr`.
 * **Audit Write Failure:** The system logs an error to `stderr` but still returns the validation result to avoid blocking the critical path.
 
 ## 14. Security and Privacy Considerations

@@ -113,18 +113,23 @@ agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--b
 
 `ValidationReport` output is a stable public integration surface for local automation, CI checks, and future framework adapters. Reports do not include raw payload arguments by default.
 
-Exit codes:
+## 12. Public Python API
+
+`src/agent_preflight/__init__.py` is the intended public import boundary. It re-exports the stable payload, schema, validator, policy, audit, config, and report primitives for library users.
+
+## 13. Exit Codes
 
 * `0` when validation allows the action.
 * `2` when validation blocks or rejects the action.
 * `1` for file or runtime errors that prevent validation.
 
-## 12. Testing Strategy
+## 14. Testing Strategy
 
 * **Unit Tests:** `pytest` covering model validation, parser edge cases, audit writing, and individual policy hooks.
 * **CLI Tests:** Tests verifying standard out and exit codes through the CLI entry point.
+* **Public API Tests:** Tests verifying imports from `agent_preflight` and equivalent validation behavior from Python code.
 
-## 13. Failure Modes
+## 15. Failure Modes
 
 * **Invalid Schema:** Validator returns `allowed: false`.
 * **Schema Mismatch:** Validator returns `allowed: false` with a stable reason such as a missing required argument or invalid argument type.
@@ -133,15 +138,15 @@ Exit codes:
 * **Unknown Audit Backend:** CLI exits with code `1` and writes an error to `stderr`.
 * **Audit Write Failure:** The system logs an error to `stderr` but still returns the validation result to avoid blocking the critical path.
 
-## 14. Security and Privacy Considerations
+## 16. Security and Privacy Considerations
 
 This is a non-production scaffold. It relies on the host environment's security for file access. It does not sanitize inputs for execution security, as its primary role is structural validation, not action execution.
 
-## 15. Extensibility
+## 17. Extensibility
 
 The `policy.py` module defines a small `BasePolicy` class, allowing developers to subclass and inject their own pre-execution checks.
 
-## 16. Deferred Work
+## 18. Deferred Work
 
 * Config-relative path resolution.
 * Multiple policy orchestration.
@@ -149,6 +154,6 @@ The `policy.py` module defines a small `BasePolicy` class, allowing developers t
 * Complex stateful validation, such as checking whether action B is allowed after action A.
 * Native dashboard or complex query interfaces for the audit log.
 
-## 17. Open Questions
+## 19. Open Questions
 
 * How strict should type coercion be during the parsing phase?

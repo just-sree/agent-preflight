@@ -104,6 +104,30 @@ agent-preflight validate examples/blocked_action.json \
 
 Reports are intended for local automation, CI checks, and integration testing. They do not include raw action arguments by default.
 
+## Python API
+
+`agent-preflight` can be used directly from Python.
+
+```python
+from agent_preflight import ActionPayload, ActionValidator
+
+validator = ActionValidator()
+result = validator.validate(
+    ActionPayload(
+        action_name="lookup_user",
+        arguments={"user_id": "demo-user-001"},
+    )
+)
+
+print(result.allowed)
+```
+
+More examples:
+
+* `examples/python_api_basic.py`
+* `examples/python_api_with_policy.py`
+* `examples/python_api_with_schema.py`
+
 ## Current Scope
 
 This early version supports:
@@ -116,6 +140,7 @@ This early version supports:
 * JSONL audit records
 * SQLite audit records
 * validation report output
+* public Python API imports
 * local CLI usage
 
 ## Not Included Yet

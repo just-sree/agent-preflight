@@ -39,6 +39,8 @@
 * **FR-AP-012:** The CLI must support machine-readable validation reports.
 * **FR-AP-013:** The CLI must optionally write validation reports to a local JSON file.
 * **FR-AP-014:** Validation reports must avoid raw payload arguments by default.
+* **FR-AP-015:** The package must expose a stable public Python import surface.
+* **FR-AP-016:** CLI and Python API validation should return equivalent validation results.
 
 ## 7. Inputs and Outputs
 | Component | Input | Output |
@@ -56,6 +58,8 @@ The CLI will serve as an experimental interface. It must support a `validate` co
 The CLI may optionally accept a local action schema file for required argument and simple type validation. It may also accept a local YAML config file for simple blocked action, schema mapping, and audit settings.
 
 The CLI may emit validation reports to standard output and may write a report JSON file for automation and CI usage.
+
+The Python API should expose the same core payload, validator, policy, schema, audit, and report primitives through `agent_preflight`.
 
 ## 9. Configuration Requirements
 Configuration is provided through Python objects, CLI flags, or a local YAML file. CLI flags take precedence over config values. No remote configuration fetching is supported.
@@ -89,6 +93,7 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M5:** Local YAML config support.
 * **M6:** Local SQLite audit backend.
 * **M7:** Machine-readable validation report output.
+* **M8:** Stable public Python API imports.
 
 ## 15. Open Questions
 * What query helpers should be exposed for SQLite audit records?

@@ -11,6 +11,8 @@ def test_public_imports_work_from_agent_preflight():
         "SQLiteAuditWriter",
         "ValidationResult",
         "ValidationReport",
+        "ActionExecutor",
+        "ExecutionResult",
     }
 
     for name in expected_names:
@@ -81,3 +83,12 @@ def test_audit_writer_imports_work(tmp_path):
 
     assert jsonl_writer.path.name == "audit.jsonl"
     assert sqlite_writer.path.name == "audit.db"
+
+
+def test_executor_imports_work():
+    executor = agent_preflight.ActionExecutor()
+
+    result = executor.run(agent_preflight.ActionPayload(action_name="lookup_user"))
+
+    assert isinstance(result, agent_preflight.ExecutionResult)
+    assert result.allowed is True

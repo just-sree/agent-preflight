@@ -2,9 +2,11 @@
 
 from agent_preflight.audit import AuditWriter, SQLiteAuditWriter
 from agent_preflight.config import AuditConfig, PreflightConfig, load_preflight_config
+from agent_preflight.executor import ActionExecutor
 from agent_preflight.models import (
     ActionPayload,
     AuditRecord,
+    ExecutionResult,
     PolicyDecision,
     ValidationResult,
 )
@@ -17,16 +19,18 @@ from agent_preflight.schemas import (
 )
 from agent_preflight.validator import ActionValidator
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "ActionPayload",
     "AuditRecord",
     "PolicyDecision",
     "ValidationResult",
+    "ExecutionResult",
     "ActionSchema",
     "ValidationReport",
     "ActionValidator",
+    "ActionExecutor",
     "BasePolicy",
     "BlockActionNamesPolicy",
     "AuditWriter",

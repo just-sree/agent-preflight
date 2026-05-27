@@ -37,3 +37,13 @@ class AuditRecord(BaseModel):
     allowed: bool
     reason: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExecutionResult(BaseModel):
+    allowed: bool
+    executed: bool
+    action_name: str
+    reason: str
+    output: Any | None = None
+    error: str | None = None
+    audit_id: str | None = None

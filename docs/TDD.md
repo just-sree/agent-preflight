@@ -33,6 +33,7 @@ src/agent_preflight/
   __init__.py
   cli.py
   config.py
+  executor.py
   models.py
   reports.py
   schemas.py
@@ -62,6 +63,7 @@ docs/
 * `PreflightConfig`: Represents optional local YAML config for blocked actions, schema mapping, and audit settings.
 * `ValidationResult`: Contains the boolean `allowed` flag, `action_name`, `reason`, optional policy decision, and optional audit identifier.
 * `ValidationReport`: Represents the stable public report schema for CLI and automation output.
+* `ExecutionResult`: Contains validation and handler execution outcome fields.
 * `PolicyDecision`: The intermediate output from a policy hook evaluating a specific rule.
 * `AuditRecord`: The serialized record combining the action name, outcome, reason, timestamp, audit ID, and metadata for local storage.
 
@@ -71,6 +73,7 @@ docs/
 * **Config Loader:** Deserializes local YAML config into a `PreflightConfig`.
 * **Schema Loader:** Deserializes local schema JSON into an `ActionSchema`.
 * **Validator Core:** Orchestrates Pydantic payload validation, optional action schema validation, optional policy evaluation, and optional audit writing.
+* **ActionExecutor:** Validates a payload, applies the dry-run default, looks up registered local handlers, and returns an execution result.
 * **Report Builder:** Converts a `ValidationResult` into a stable `ValidationReport`.
 * **Policy Hook:** Applies one configured static policy check, such as blocked action names. Multi-policy orchestration is deferred.
 * **Audit Writer:** Appends validation records to a local JSONL file.
@@ -117,19 +120,30 @@ agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--b
 
 `src/agent_preflight/__init__.py` is the intended public import boundary. It re-exports the stable payload, schema, validator, policy, audit, config, and report primitives for library users.
 
-## 13. Exit Codes
+## 13. Execution Wrapper
+
+`ActionExecutor` provides a dry-run-first local execution wrapper. Its control flow is:
+
+```text
+payload -> validator -> dry-run check -> handler lookup -> execution result
+```
+
+Handlers are registered in memory by action name and receive `payload.arguments`. Execution only happens when validation succeeds and `dry_run=False`.
+
+## 14. Exit Codes
 
 * `0` when validation allows the action.
 * `2` when validation blocks or rejects the action.
 * `1` for file or runtime errors that prevent validation.
 
-## 14. Testing Strategy
+## 15. Testing Strategy
 
 * **Unit Tests:** `pytest` covering model validation, parser edge cases, audit writing, and individual policy hooks.
 * **CLI Tests:** Tests verifying standard out and exit codes through the CLI entry point.
 * **Public API Tests:** Tests verifying imports from `agent_preflight` and equivalent validation behavior from Python code.
+* **Executor Tests:** Tests verifying dry-run behavior, handler execution, blocked actions, and safe handler errors.
 
-## 15. Failure Modes
+## 16. Failure Modes
 
 * **Invalid Schema:** Validator returns `allowed: false`.
 * **Schema Mismatch:** Validator returns `allowed: false` with a stable reason such as a missing required argument or invalid argument type.
@@ -137,23 +151,26 @@ agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--b
 * **Invalid Config:** CLI exits with code `1` and writes an error to `stderr`.
 * **Unknown Audit Backend:** CLI exits with code `1` and writes an error to `stderr`.
 * **Audit Write Failure:** The system logs an error to `stderr` but still returns the validation result to avoid blocking the critical path.
+* **Handler Failure:** Executor catches handler exceptions and returns a safe error string without stack traces.
 
-## 16. Security and Privacy Considerations
+## 17. Security and Privacy Considerations
 
 This is a non-production scaffold. It relies on the host environment's security for file access. It does not sanitize inputs for execution security, as its primary role is structural validation, not action execution.
 
-## 17. Extensibility
+## 18. Extensibility
 
 The `policy.py` module defines a small `BasePolicy` class, allowing developers to subclass and inject their own pre-execution checks.
 
-## 18. Deferred Work
+## 19. Deferred Work
 
 * Config-relative path resolution.
+* Async execution support.
+* Subprocess or shell command execution.
 * Multiple policy orchestration.
 * Framework integrations.
 * Complex stateful validation, such as checking whether action B is allowed after action A.
 * Native dashboard or complex query interfaces for the audit log.
 
-## 19. Open Questions
+## 20. Open Questions
 
 * How strict should type coercion be during the parsing phase?

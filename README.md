@@ -128,6 +128,29 @@ More examples:
 * `examples/python_api_with_policy.py`
 * `examples/python_api_with_schema.py`
 
+## Dry-run execution wrapper
+
+`agent-preflight` can validate an action before calling a registered local handler.
+
+```python
+from agent_preflight import ActionExecutor, ActionPayload
+
+executor = ActionExecutor()
+executor.register("lookup_user", lambda args: {"user_id": args["user_id"]})
+
+result = executor.run(
+    ActionPayload(
+        action_name="lookup_user",
+        arguments={"user_id": "demo-user-001"},
+    ),
+    dry_run=False,
+)
+
+print(result.executed)
+```
+
+Dry-run mode is enabled by default.
+
 ## Current Scope
 
 This early version supports:
@@ -141,6 +164,7 @@ This early version supports:
 * SQLite audit records
 * validation report output
 * public Python API imports
+* dry-run execution wrapper
 * local CLI usage
 
 ## Not Included Yet

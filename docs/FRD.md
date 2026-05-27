@@ -34,25 +34,28 @@
 * **FR-AP-007:** The package must not require network access for its default operation.
 * **FR-AP-008:** The system must optionally validate required action arguments against simple declared types.
 * **FR-AP-009:** The audit logger must preserve local metadata in JSON-serializable form.
+* **FR-AP-010:** The CLI must optionally load local YAML config for blocked actions, schema mapping, and audit settings.
 
 ## 7. Inputs and Outputs
 | Component | Input | Output |
 | :--- | :--- | :--- |
 | **Validator** | `ActionPayload` (JSON/Dict) | `ValidationResult` (Object) |
 | **Action Schema** | Schema JSON/Dict | Required argument and type expectations |
+| **Config Loader** | YAML file | `PreflightConfig` (Object) |
 | **Policy Hook** | `ActionPayload` | `PolicyDecision` (Boolean + Reason) |
 | **Audit Logger** | `ActionPayload` + validation outcome | Local File Append (JSONL) |
 
 ## 8. CLI Requirements
 The CLI will serve as an experimental interface. It must support a `validate` command that accepts a file path to a JSON payload, processes it through the validation primitives, and outputs the result to standard out.
 
-The CLI may optionally accept a local action schema file for required argument and simple type validation.
+The CLI may optionally accept a local action schema file for required argument and simple type validation. It may also accept a local YAML config file for simple blocked action, schema mapping, and audit settings.
 
 ## 9. Configuration Requirements
-For v0.1, configuration is provided directly through Python objects or CLI flags such as `--block-action` and `--audit-log`. Local JSON or YAML configuration files are deferred. No remote configuration fetching is supported.
+Configuration is provided through Python objects, CLI flags, or a local YAML file. CLI flags take precedence over config values. No remote configuration fetching is supported.
 
 ## 10. Error Handling Requirements
 * Malformed JSON inputs must gracefully fail, returning a `ValidationResult`-shaped response with `allowed: false` and a descriptive parser error.
+* Invalid YAML config must gracefully fail with a clear runtime/config error.
 * Schema mismatches must not raise unhandled exceptions but rather return structured rejection reasons.
 
 ## 11. Observability Requirements
@@ -72,6 +75,7 @@ The library should follow a "low-friction" integration pattern. Type hints (Pyth
 * **M2:** Core Pydantic schema validation.
 * **M3:** Local policy hooks and audit logging integration.
 * **M4:** Schema-bound action argument validation.
+* **M5:** Local YAML config support.
 
 ## 15. Open Questions
 * When should the audit logger add SQLite support for querying?

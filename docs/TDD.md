@@ -1,7 +1,7 @@
 # Technical Design Document
 
 ## 1. Overview
-This document outlines the v0.1 technical architecture for the `agent-preflight` early scaffold. The system is designed as a local middleware layer to parse, validate, and log AI agent action proposals before they reach an execution layer.
+This document outlines the technical architecture for the `agent-preflight` early scaffold. The system is designed as a local middleware layer to parse, validate, and log AI agent action proposals before they reach an execution layer.
 
 ## 2. Design Principles
 * **Offline-First:** No reliance on network APIs for validation.
@@ -32,6 +32,7 @@ Optional AuditWriter
 src/agent_preflight/
   __init__.py
   cli.py
+  config.py
   models.py
   schemas.py
   validator.py
@@ -40,7 +41,9 @@ src/agent_preflight/
 examples/
   allowed_action.json
   blocked_action.json
+  preflight.yml
 tests/
+  test_config.py
   test_models.py
   test_validator.py
   test_policy.py
@@ -55,6 +58,7 @@ docs/
 
 * `ActionPayload`: Represents the incoming unverified tool or action request.
 * `ActionSchema`: Represents optional per-action argument requirements and simple expected types.
+* `PreflightConfig`: Represents optional local YAML config for blocked actions, schema mapping, and audit settings.
 * `ValidationResult`: Contains the boolean `allowed` flag, `action_name`, `reason`, optional policy decision, and optional audit identifier.
 * `PolicyDecision`: The intermediate output from a policy hook evaluating a specific rule.
 * `AuditRecord`: The serialized record combining the action name, outcome, reason, timestamp, audit ID, and metadata for local storage.
@@ -62,6 +66,7 @@ docs/
 ## 7. Main Components
 
 * **Parser:** Deserializes incoming JSON data into an `ActionPayload`.
+* **Config Loader:** Deserializes local YAML config into a `PreflightConfig`.
 * **Schema Loader:** Deserializes local schema JSON into an `ActionSchema`.
 * **Validator Core:** Orchestrates Pydantic payload validation, optional action schema validation, optional policy evaluation, and optional audit writing.
 * **Policy Hook:** Applies one configured static policy check, such as blocked action names. Multi-policy orchestration is deferred.
@@ -71,22 +76,23 @@ docs/
 
 1. API/CLI receives raw data.
 2. Parser attempts to structure the data; malformed inputs become structured rejections.
-3. Validator validates the payload against the `ActionPayload` schema.
-4. If configured, the action schema validates the action name, required arguments, and simple argument types.
-5. The optional policy hook evaluates the action intent.
-6. A `ValidationResult` is generated.
-7. If configured, the event is written to local storage via the `AuditWriter`.
-8. The result is returned to the caller.
+3. If configured, the CLI loads local YAML config.
+4. Validator validates the payload against the `ActionPayload` schema.
+5. If configured, the action schema validates the action name, required arguments, and simple argument types.
+6. The optional policy hook evaluates the action intent.
+7. A `ValidationResult` is generated.
+8. If configured, the event is written to local storage via the `AuditWriter`.
+9. The result is returned to the caller.
 
 ## 9. Storage Design
 
-Storage is restricted to optional local audit logs. The v0.1 implementation supports append-only JSONL, configurable by the user through code or the `--audit-log` CLI flag.
+Storage is restricted to optional local audit logs. The implementation supports append-only JSONL, configurable by the user through code, config, or the `--audit-log` CLI flag.
 
 Audit metadata is shallow-copied. Metadata values that cannot be serialized as JSON are replaced with their string representation before being written.
 
 ## 10. Configuration Design
 
-For v0.1, configuration is intentionally limited to Python constructor arguments and CLI flags. A richer `PreflightConfig` object and local YAML loading are deferred.
+Configuration is intentionally small. `PreflightConfig` can be loaded from local YAML and supports blocked actions, schema path mappings by action name, and audit settings. Schema paths inside config are resolved relative to the current working directory.
 
 ## 11. CLI Design
 
@@ -95,7 +101,7 @@ Built with the standard library `argparse` module.
 Command pattern:
 
 ```bash
-agent-preflight validate <path_to_json> [--schema <path>] [--block-action <name>] [--audit-log <path>]
+agent-preflight validate <path_to_json> [--config <path>] [--schema <path>] [--block-action <name>] [--audit-log <path>]
 ```
 
 Exit codes:
@@ -114,6 +120,7 @@ Exit codes:
 * **Invalid Schema:** Validator returns `allowed: false`.
 * **Schema Mismatch:** Validator returns `allowed: false` with a stable reason such as a missing required argument or invalid argument type.
 * **Malformed JSON:** CLI returns a `ValidationResult`-shaped rejection.
+* **Invalid Config:** CLI exits with code `1` and writes an error to `stderr`.
 * **Audit Write Failure:** The system logs an error to `stderr` but still returns the validation result to avoid blocking the critical path.
 
 ## 14. Security and Privacy Considerations
@@ -126,7 +133,7 @@ The `policy.py` module defines a small `BasePolicy` class, allowing developers t
 
 ## 16. Deferred Work
 
-* Local JSON or YAML configuration files.
+* Config-relative path resolution.
 * Multiple policy orchestration.
 * Framework integrations.
 * Complex stateful validation, such as checking whether action B is allowed after action A.

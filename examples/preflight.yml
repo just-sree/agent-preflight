@@ -1,0 +1,10 @@
+blocked_actions:
+  - delete_rows
+  - send_email
+
+schemas:
+  lookup_user: examples/action_schema.json
+
+audit:
+  enabled: true
+  path: .agent-preflight/audit.jsonl

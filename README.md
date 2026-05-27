@@ -13,6 +13,7 @@ agent-preflight validate examples/allowed_action.json
 agent-preflight validate examples/blocked_action.json --block-action delete_rows
 agent-preflight validate examples/allowed_action.json --audit-log .agent-preflight/audit.jsonl
 agent-preflight validate examples/allowed_action.json --schema examples/action_schema.json
+agent-preflight validate examples/blocked_action.json --config examples/preflight.yml
 ```
 
 ## Schema-bound validation
@@ -38,6 +39,30 @@ Example schema:
 
 This is intentionally small and local-first. It is not a full policy engine or production security layer.
 
+## Config file
+
+`agent-preflight` can load simple YAML config for local validation.
+
+```bash
+agent-preflight validate examples/blocked_action.json --config examples/preflight.yml
+```
+
+Example:
+
+```yaml
+blocked_actions:
+  - delete_rows
+
+schemas:
+  lookup_user: examples/action_schema.json
+
+audit:
+  enabled: true
+  path: .agent-preflight/audit.jsonl
+```
+
+CLI flags override config values.
+
 ## Current Scope
 
 This early version supports:
@@ -45,6 +70,7 @@ This early version supports:
 * structured action payloads
 * required-field validation
 * schema-bound argument validation
+* YAML config files
 * simple action-name blocking
 * JSONL audit records
 * local CLI usage

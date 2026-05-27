@@ -89,3 +89,128 @@ def test_cli_schema_blocks_invalid_action(capsys):
     assert exit_code == 2
     assert result["allowed"] is False
     assert result["reason"] == "Missing required argument: user_id"
+
+
+def test_cli_config_blocked_action_blocks_action(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/blocked_action.json",
+            "--config",
+            "examples/preflight.yml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert result["allowed"] is False
+    assert result["reason"] == "Action is blocked by policy"
+
+
+def test_cli_config_schema_allows_valid_action(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight.yml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["allowed"] is True
+
+
+def test_cli_config_schema_blocks_missing_required_argument(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/invalid_missing_argument.json",
+            "--config",
+            "examples/preflight.yml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert result["allowed"] is False
+    assert result["reason"] == "Missing required argument: user_id"
+
+
+def test_cli_schema_overrides_config_schema(tmp_path, capsys):
+    override_schema = tmp_path / "override_schema.json"
+    override_schema.write_text(
+        json.dumps(
+            {
+                "action_name": "lookup_user",
+                "required_arguments": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/invalid_missing_argument.json",
+            "--config",
+            "examples/preflight.yml",
+            "--schema",
+            str(override_schema),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["allowed"] is True
+
+
+def test_cli_audit_log_overrides_config_audit_path(tmp_path, capsys):
+    audit_path = tmp_path / "audit.jsonl"
+
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--audit-log",
+            str(audit_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["audit_id"]
+    assert audit_path.exists()
+
+
+def test_cli_block_action_combines_with_config_blocked_actions(capsys):
+    exit_code = main(
+        [
+            "validate",
+            "examples/allowed_action.json",
+            "--config",
+            "examples/preflight.yml",
+            "--block-action",
+            "lookup_user",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert result["allowed"] is False
+    assert result["reason"] == "Action is blocked by policy"

@@ -3,6 +3,7 @@ import json
 import sys
 
 from agent_preflight.audit import AuditWriter
+from agent_preflight.config import PreflightConfig, load_preflight_config
 from agent_preflight.models import ValidationResult
 from agent_preflight.policy import BlockActionNamesPolicy
 from agent_preflight.schemas import load_action_schema
@@ -32,8 +33,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--schema",
         help="Path to an action schema JSON file.",
     )
+    validate_parser.add_argument(
+        "--config",
+        help="Path to a local YAML preflight config file.",
+    )
 
     return parser
+
+
+def _select_schema_path(
+    payload: dict,
+    cli_schema_path: str | None,
+    config: PreflightConfig,
+) -> str | None:
+    if cli_schema_path:
+        return cli_schema_path
+
+    action_name = payload.get("action_name") if isinstance(payload, dict) else None
+    if not isinstance(action_name, str):
+        return None
+
+    # TODO: Add config-relative path resolution after the v0.3 CLI contract settles.
+    return config.schemas.get(action_name)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -59,13 +80,23 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
+        config = load_preflight_config(args.config) if args.config else PreflightConfig()
+        blocked_actions = set(config.blocked_actions) | set(args.block_action)
         policy = (
-            BlockActionNamesPolicy(set(args.block_action))
-            if args.block_action
+            BlockActionNamesPolicy(blocked_actions)
+            if blocked_actions
             else None
         )
-        audit_writer = AuditWriter(args.audit_log) if args.audit_log else None
-        action_schema = load_action_schema(args.schema) if args.schema else None
+        audit_log_path = (
+            args.audit_log
+            if args.audit_log
+            else config.audit.path
+            if config.audit.enabled
+            else None
+        )
+        audit_writer = AuditWriter(audit_log_path) if audit_log_path else None
+        schema_path = _select_schema_path(payload, args.schema, config)
+        action_schema = load_action_schema(schema_path) if schema_path else None
         validator = ActionValidator(
             policy=policy,
             audit_writer=audit_writer,
